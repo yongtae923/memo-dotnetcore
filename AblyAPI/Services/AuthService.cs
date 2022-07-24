@@ -1,5 +1,7 @@
 using AblyAPI.Models.Data;
+using AblyAPI.Models.DTO;
 using AblyAPI.Models.Requests;
+using PhoneNumbers;
 
 namespace AblyAPI.Services;
 
@@ -10,23 +12,31 @@ public interface IAuthService
     /// </summary>
     /// <param name="model">전화번호</param>
     /// <returns>인증번호</returns>
-    string RequestVerificationCodeAsync(VerificationCodeRequestModel model);
+    Task<StatusResponse> RequestVerificationCodeAsync(VerificationCodeRequestModel model);
 }
 
 public class AuthService : IAuthService
 {
     private readonly DatabaseContext _database;
+    private readonly PhoneNumberUtil _phone;
 
     public AuthService(DatabaseContext database)
     {
         _database = database;
+        _phone = PhoneNumberUtil.GetInstance();
     }
 
-    public string RequestVerificationCodeAsync(VerificationCodeRequestModel model)
+    public async Task<StatusResponse> RequestVerificationCodeAsync(VerificationCodeRequestModel model)
     {
-        var code = new VerificationCode(model.Phone);
+        var phoneString = model.Phone;
+        
+        if (!PhoneNumberUtil.IsViablePhoneNumber(phoneString)) return new StatusResponse(StatusType.BadRequest);
+        
+        var code = new VerificationCode(_phone.Format(_phone.Parse(phoneString, "KR"), PhoneNumberFormat.E164));
+        
         _database.VerificationCodes.Add(code);
-        _database.SaveChangesAsync();
-        return code.Code;
+        await _database.SaveChangesAsync();
+        
+        return new StatusResponse(StatusType.Success, code.Code);
     }
 }

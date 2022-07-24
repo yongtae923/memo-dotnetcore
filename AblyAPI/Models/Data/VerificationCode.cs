@@ -1,8 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AblyAPI.Models.Data;
 
 public class VerificationCode
 {
     public string Id { get; set; }
+    [DataType(DataType.PhoneNumber)]
     public string Phone { get; set; }
     public string Code { get; set; }
     public DateTimeOffset? VerifiesAt { get; set; }

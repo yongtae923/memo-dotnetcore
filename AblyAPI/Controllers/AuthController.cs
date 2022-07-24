@@ -1,3 +1,4 @@
+using AblyAPI.Models.DTO;
 using AblyAPI.Models.Requests;
 using AblyAPI.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -21,18 +22,24 @@ public class AuthController : Controller
     /// <remarks>
     /// Sample request:
     /// 
-    ///     GET /api/auth/codes
+    ///     POST /api/auth/codes
     ///     {
     ///         "phone" : "01012345678"
     ///     }
     ///
     /// </remarks>
     /// <response code="200">성공 시 인증번호 응답</response>
+    /// <response code="400">입력값이 전화번호 형식이 아니면 실패</response>
     [HttpPost("codes")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public IActionResult RequestVerificationCode([FromBody] VerificationCodeRequestModel model)
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RequestVerificationCode([FromBody] VerificationCodeRequestModel model)
     {
-        var response = _service.RequestVerificationCodeAsync(model);
-        return Ok(response);
+        var response = await _service.RequestVerificationCodeAsync(model);
+        return response.Status switch
+        {
+            StatusType.Success => Ok(response.Body),
+            _ => BadRequest()
+        };
     }
 }
