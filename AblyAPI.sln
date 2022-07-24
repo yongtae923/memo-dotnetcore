@@ -1,6 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# 
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AblyAPI", "AblyAPI\AblyAPI.csproj", "{538A6BF7-E23D-4F38-A505-A8AB4ED3F5D2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AblyAPITest", "AblyAPITest\AblyAPITest.csproj", "{CC58448F-4A9F-4554-BD53-6F97CECA94D2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -12,5 +15,9 @@ Global
 		{538A6BF7-E23D-4F38-A505-A8AB4ED3F5D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{538A6BF7-E23D-4F38-A505-A8AB4ED3F5D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{538A6BF7-E23D-4F38-A505-A8AB4ED3F5D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC58448F-4A9F-4554-BD53-6F97CECA94D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC58448F-4A9F-4554-BD53-6F97CECA94D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC58448F-4A9F-4554-BD53-6F97CECA94D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC58448F-4A9F-4554-BD53-6F97CECA94D2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
