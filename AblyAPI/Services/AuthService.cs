@@ -26,6 +26,7 @@ public class AuthService : IAuthService
     {
         var code = new VerificationCode(model.Phone);
         _database.VerificationCodes.Add(code);
+        _database.SaveChangesAsync();
         return code.Code;
     }
 }
