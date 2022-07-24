@@ -1,5 +1,6 @@
 using AblyAPI.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,7 +9,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Version = "v1",
+        Title = "Ably API",
+        Description = "회원가입 및 비밀번호 재설정을 할 수 있는 에이블리 과제 API written by 김용태"
+    });
+});
 
 // InMemory Database
 builder.Services.AddDbContext<DatabaseContext>(options => {
