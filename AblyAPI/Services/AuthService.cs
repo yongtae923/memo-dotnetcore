@@ -1,6 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using AblyAPI.Models.Data;
 using AblyAPI.Models.DTO;
 using AblyAPI.Models.Requests;
+using Microsoft.EntityFrameworkCore;
 using PhoneNumbers;
 
 namespace AblyAPI.Services;
@@ -56,10 +58,40 @@ public class AuthService : IAuthService
             code.Code == verifyingCode && code.Phone == ParseToFormat(phoneString));
         if (!matchedCodes.Any()) return new StatusResponse(StatusType.NotFound);
 
-        var activeCodes = matchedCodes.Where(code => code.ExpiresAt > DateTimeOffset.Now);
+        var activeCodes = matchedCodes.Where(code => code.ExpiresAt > DateTimeOffset.UtcNow);
         if (!activeCodes.Any()) return new StatusResponse(StatusType.RequestTimeout);
 
-        activeCodes.ToList().ForEach(code => code.VerifiesAt = DateTimeOffset.Now);
+        activeCodes.ToList().ForEach(code => code.VerifiesAt = DateTimeOffset.UtcNow);
+        await _database.SaveChangesAsync();
+
+        return new StatusResponse(StatusType.Success);
+    }
+
+    public async Task<StatusResponse> RegisterAsync(RegisterRequestModel model)
+    {
+        var phoneString = model.Phone;
+        var emailString = model.Email;
+
+        var invalidPhone = !PhoneNumberUtil.IsViablePhoneNumber(phoneString);
+        var invalidEmail = !new EmailAddressAttribute().IsValid(emailString);
+        if (invalidPhone || invalidEmail || model.Password.Length < 6) return new StatusResponse(StatusType.BadRequest,
+            new {Phone = invalidPhone ? phoneString : null, Email = invalidEmail ? emailString : null});
+
+        var parsedPhone = ParseToFormat(phoneString);
+        
+        var existingPhone = await _database.Accounts.AnyAsync(account => account.Phone == parsedPhone);
+        var existingEmail = await _database.Accounts.AnyAsync(account => account.Email == emailString);
+        if (existingPhone || existingEmail) return new StatusResponse(StatusType.Conflict,
+            new {Phone = existingPhone ? phoneString : null, Email = existingEmail ? emailString : null});
+
+        var validCodes = _database.VerificationCodes.Where(code =>
+            code.Phone == parsedPhone && code.VerifiesAt < DateTimeOffset.UtcNow &&
+            code.ExpiresAt > DateTimeOffset.UtcNow).ToList();
+        if (validCodes.Count == 0) return new StatusResponse(StatusType.Forbidden);
+        
+        validCodes.ForEach(code => code.ExpiresAt = DateTimeOffset.UtcNow);
+        
+        _database.Accounts.Add(model.ToAccount(parsedPhone));
         await _database.SaveChangesAsync();
 
         return new StatusResponse(StatusType.Success);

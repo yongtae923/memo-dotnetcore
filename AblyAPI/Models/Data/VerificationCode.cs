@@ -17,6 +17,6 @@ public class VerificationCode
         Phone = phone;
         Code = new Random().Next(100000, 1000000).ToString();
         VerifiesAt = null;
-        ExpiresAt = DateTimeOffset.Now.AddMinutes(5);
+        ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(5);
     }
 }
