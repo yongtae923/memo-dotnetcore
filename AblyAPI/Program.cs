@@ -20,7 +20,8 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // InMemory Database
-builder.Services.AddDbContext<DatabaseContext>(options => {
+builder.Services.AddDbContext<DatabaseContext>(options =>
+{
     options.UseInMemoryDatabase("InMemoryDB");
 });
 
