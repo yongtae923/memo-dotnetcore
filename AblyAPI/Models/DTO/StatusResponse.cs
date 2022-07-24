@@ -15,5 +15,8 @@ public class StatusResponse
 public enum StatusType
 {
     Success,
-    BadRequest
+    BadRequest,
+    NotFound,
+    RequestTimeout,
+    Conflict
 }

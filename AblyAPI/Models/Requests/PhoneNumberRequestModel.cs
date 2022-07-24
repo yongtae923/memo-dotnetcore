@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace AblyAPI.Models.Requests;
 
-public class VerificationCodeRequestModel
+public class PhoneNumberRequestModel
 {
     [Required]
     [DataType(DataType.PhoneNumber)]
