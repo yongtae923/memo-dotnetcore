@@ -16,7 +16,7 @@ public class AuthController : Controller
     }
     
     /// <summary>
-    /// 전화번호 인증을 받기 위해 전화번호를 입력하고 문자로 인증번호를 보내는 API. 실제로는 인증번호를 문자로 전달해야 하지만, 여기서는 이 API의 응답으로 대신하겠습니다.
+    /// 전화번호 인증을 받기 위해 전화번호를 입력하고 문자로 인증번호를 보냅니다. 실제로는 인증번호를 문자로 전달해야 하지만, 여기서는 이 API의 응답으로 대신하겠습니다.
     /// </summary>
     /// <param name="model">전화번호</param>
     /// <remarks>
@@ -75,6 +75,44 @@ public class AuthController : Controller
             StatusType.BadRequest => BadRequest(),
             StatusType.NotFound => NotFound(),
             _ => StatusCode(408)
+        };
+    }
+
+    /// <summary>
+    /// 올바른 회원가입 입력모델을 받아서 회원가입합니다.
+    /// </summary>
+    /// <param name="model">회원가입 입력모델: 이메일, 비밀번호, 이름, 닉네임, 전화번호</param>
+    /// <remarks>
+    /// Sample request:
+    /// 
+    ///     POST /api/auth/accounts
+    ///     {
+    ///         "email" : "yongtae@a-bly.com",
+    ///         "password" : "yongtae@ably!",
+    ///         "name" : "Yongtae Kim",
+    ///         "nickname" : "Ably-dev",
+    ///         "phone" : "01012345678"
+    ///     }
+    /// 
+    /// </remarks>
+    /// <response code="200">성공</response>
+    /// <response code="400">입력한 전화번호나 이메일이 올바른 형식이 아니면 실패</response>
+    /// <response code="403">입력한 전화번호에 해당하는 활성 인증코드가 없으면 실패</response>
+    /// <response code="409">입력한 전화번호나 이메일이 겹치는 계정이 이미 있으면 실패</response>
+    [HttpPost("accounts")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Register([FromBody] RegisterRequestModel model)
+    {
+        var response = await _service.RegisterAsync(model);
+        return response.Status switch
+        {
+            StatusType.Success => Ok(),
+            StatusType.BadRequest => BadRequest(response.Body),
+            StatusType.Forbidden => StatusCode(403),
+            _ => Conflict(response.Body)
         };
     }
 }

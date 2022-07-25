@@ -31,7 +31,7 @@ public class AuthServiceTest
     public async void Does_RequestVerificationCodeAsync_Return_Ok_Verification_Code_When_Phone_Number_Is_Right()
     {
         // Let
-        var model = new PhoneNumberRequestModel {Phone = "01012345678"};
+        var model = TestPhoneNumberRequestModel;
         
         // Do
         var response = await _service.RequestVerificationCodeAsync(model);
@@ -54,7 +54,8 @@ public class AuthServiceTest
     public async void Does_RequestVerificationCodeAsync_Return_BadRequest_When_Phone_Number_Is_Wrong()
     {
         // Let
-        var model = new PhoneNumberRequestModel {Phone = "WrongNumber"};
+        var model = TestPhoneNumberRequestModel;
+        model.Phone = "WrongNumber";
         
         // Do
         var response = await _service.RequestVerificationCodeAsync(model);
@@ -69,7 +70,7 @@ public class AuthServiceTest
     public async void Does_VerifyCodeAsync_Verify_Right_Codes_Well()
     {
         // Let
-        var model = new PhoneNumberRequestModel {Phone = "01012345678"};
+        var model = TestPhoneNumberRequestModel;
         var savedCode = new VerificationCode(ParseToFormat(model.Phone));
         
         _database.VerificationCodes.Add(savedCode);
@@ -95,7 +96,7 @@ public class AuthServiceTest
     public async void Does_VerifyCodeAsync_Return_BadRequest_When_Phone_Number_Is_Wrong()
     {
         // Let
-        var model = new PhoneNumberRequestModel {Phone = "01012345678"};
+        var model = TestPhoneNumberRequestModel;
         model.Phone = "Wrong Number";
         
         // Do
@@ -111,7 +112,7 @@ public class AuthServiceTest
     public async void Does_VerifyCodeAsync_Return_NotFound_When_There_Is_No_Right_Verification_Code()
     {
         // Let
-        var model = new PhoneNumberRequestModel {Phone = "01012345678"};
+        var model = TestPhoneNumberRequestModel;
 
         // Do
         var response = await _service.VerifyCodeAsync("123456", model);
@@ -126,7 +127,7 @@ public class AuthServiceTest
     public async void Does_VerifyCodeAsync_Return_RequestTimeout_Response_When_Every_Right_Verification_Code_Is_Outdated()
     {
         // Let
-        var model = new PhoneNumberRequestModel {Phone = "01012345678"};
+        var model = TestPhoneNumberRequestModel;
         var outdatedCode = new VerificationCode(ParseToFormat(model.Phone))
         {
             Code = "123456",
@@ -145,5 +146,146 @@ public class AuthServiceTest
         Assert.Null(response.Body);
     }
 
+    [Fact(DisplayName = "Register: 입력값이 올바르면 모든 활성 인증코드를 만료시키고 계정을 저장합니다.")]
+    public async void Does_Register_Work_Well_When_Input_Is_Right()
+    {
+        // Let
+        var model = TestRegisterRequestModel;
+        var phone = ParseToFormat(model.Phone);
+        _database.VerificationCodes.Add(
+            new VerificationCode(phone) {VerifiesAt = DateTimeOffset.UtcNow});
+        await _database.SaveChangesAsync();
+
+        // Do
+        var response = await _service.RegisterAsync(model);
+        
+        // Check
+        Assert.IsType<StatusResponse>(response);
+        Assert.Equal(StatusType.Success, response.Status);
+        Assert.Null(response.Body);
+        
+        Assert.True(_database.VerificationCodes.First().ExpiresAt < DateTimeOffset.UtcNow);
+        var account = await _database.Accounts.FirstOrDefaultAsync();
+        Assert.NotNull(account);
+        Assert.IsType<string>(account!.Id);
+        Assert.Equal(model.ToAccount(phone).Name, account.Name);
+        Assert.Equal(model.ToAccount(phone).Nickname, account.Nickname);
+        Assert.Equal(phone, account.Phone);
+        Assert.Equal(model.ToAccount(phone).Email, account.Email);
+        Assert.IsType<DateTimeOffset>(account.CreatedAt);
+    }
+
+    [Fact(DisplayName = "Register: 이메일이 올바른 형식이 아니면 BadRequest를 반환합니다.")]
+    public async void Does_Register_Return_BadRequest_When_Email_Is_Not_Right()
+    {
+        // Let
+        var model = TestRegisterRequestModel;
+        model.Email = "Wrong email";
+
+        // Do
+        var response = await _service.RegisterAsync(model);
+
+        // Check
+        Assert.IsType<StatusResponse>(response);
+        Assert.Equal(StatusType.BadRequest, response.Status);
+        Assert.NotNull(response.Body);
+        Assert.Equal($"{{ Phone = , Email = {model.Email} }}", response.Body!.ToString());
+    }
+
+    [Fact(DisplayName = "Register: 전화번호가 올바른 형식이 아니면 BadRequest를 반환합니다.")]
+    public async void Does_Register_Return_BadRequest_When_Phone_Is_Not_Right()
+    {
+        // Let
+        var model = TestRegisterRequestModel;
+        model.Phone = "Wrong phone number";
+
+        // Do
+        var response = await _service.RegisterAsync(model);
+
+        // Check
+        Assert.IsType<StatusResponse>(response);
+        Assert.Equal(StatusType.BadRequest, response.Status);
+        Assert.NotNull(response.Body);
+        Assert.Equal($"{{ Phone = {model.Phone}, Email =  }}", response.Body!.ToString());
+    }
+
+    [Fact(DisplayName = "Register: 이메일이 겹치는 계정이 이미 가입되어 있으면 Conflict를 반환합니다.")]
+    public async void Does_Register_Return_Conflict_When_Another_Account_Has_Same_Email()
+    {
+        // Let
+        var model = TestRegisterRequestModel;
+        _database.Accounts.Add(new Account
+        {
+            Id = Ulid.NewUlid().ToString(),
+            Name = Ulid.NewUlid().ToString(),
+            Nickname = Ulid.NewUlid().ToString(),
+            Phone = "01087654321",
+            Email = model.Email,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        await _database.SaveChangesAsync();
+
+        // Do
+        var response = await _service.RegisterAsync(model);
+
+        // Check
+        Assert.IsType<StatusResponse>(response);
+        Assert.Equal(StatusType.Conflict, response.Status);
+        Assert.NotNull(response.Body);
+        Assert.Equal($"{{ Phone = , Email = {model.Email} }}", response.Body!.ToString());
+    }
+
+    [Fact(DisplayName = "Register: 전화번호가 겹치는 계정이 이미 가입되어 있으면 Conflict를 반환합니다.")]
+    public async void Does_Register_Return_Conflict_When_Another_Account_Has_Same_Phone()
+    {
+        // Let
+        var model = TestRegisterRequestModel;
+        _database.Accounts.Add(new Account
+        {
+            Id = Ulid.NewUlid().ToString(),
+            Name = Ulid.NewUlid().ToString(),
+            Nickname = Ulid.NewUlid().ToString(),
+            Phone = ParseToFormat(model.Phone),
+            Email = "yongtae@a-bly.com",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        await _database.SaveChangesAsync();
+
+        // Do
+        var response = await _service.RegisterAsync(model);
+
+        // Check
+        Assert.IsType<StatusResponse>(response);
+        Assert.Equal(StatusType.Conflict, response.Status);
+        Assert.NotNull(response.Body);
+        Assert.Equal($"{{ Phone = {model.Phone}, Email =  }}", response.Body!.ToString());
+    }
+
+    [Fact(DisplayName = "Register: 활성화된 인증코드가 없으면 Forbidden을 반환합니다.")]
+    public async void Does_Register_Return_Forbidden_When_There_Is_No_Active_Verification_Code()
+    {
+        // Let
+        var model = TestRegisterRequestModel;
+
+        // Do
+        var response = await _service.RegisterAsync(model);
+
+        // Check
+        Assert.IsType<StatusResponse>(response);
+        Assert.Equal(StatusType.Forbidden, response.Status);
+        Assert.Null(response.Body);
+    }
+
     private string ParseToFormat(string phone) => _phone.Format(_phone.Parse(phone, "KR"), PhoneNumberFormat.E164);
+
+    private static PhoneNumberRequestModel TestPhoneNumberRequestModel => new() {Phone = "01012345678"};
+
+    private static RegisterRequestModel TestRegisterRequestModel => new()
+    {
+        Email = "yongtea@a-bly.com",
+        Password = "yongtae@ably!",
+        Name = "Yongtae Kim",
+        Nickname = "Ably-dev",
+        Phone = "01012345678"
+    };
 }

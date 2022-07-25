@@ -23,6 +23,13 @@ public interface IAuthService
     /// <param name="model">전화번호</param>
     /// <returns>전화번호가 올바르지 않으면 BadRequest, 해당하는 인증코드가 없으면 NotFound, 인증코드가 있지만 만료되었다면 RequestTimeout, 성공하면 Ok를 반환합니다.</returns>
     Task<StatusResponse> VerifyCodeAsync(string verifyingCode, PhoneNumberRequestModel model);
+
+    /// <summary>
+    /// 입력값이 올바르면 회원가입 처리합니다.
+    /// </summary>
+    /// <param name="model">회원가입 입력모델: 이메일, 비밀번호, 이름, 닉네임, 전화번호</param>
+    /// <returns>전화번호나 이메일이 올바르지 않으면 BadRequest, 이미 전화번호나 이메일이 겹치는 계정이 있으면 Conflict, 활성된 인증코드가 없으면 Forbidden, 성공하면 모든 활성 인증코드를 만료시키고 계정을 저장하고 Ok를 반환합니다.</returns>
+    Task<StatusResponse> RegisterAsync(RegisterRequestModel model);
 }
 
 public class AuthService : IAuthService
@@ -74,7 +81,7 @@ public class AuthService : IAuthService
 
         var invalidPhone = !PhoneNumberUtil.IsViablePhoneNumber(phoneString);
         var invalidEmail = !new EmailAddressAttribute().IsValid(emailString);
-        if (invalidPhone || invalidEmail || model.Password.Length < 6) return new StatusResponse(StatusType.BadRequest,
+        if (invalidPhone || invalidEmail) return new StatusResponse(StatusType.BadRequest,
             new {Phone = invalidPhone ? phoneString : null, Email = invalidEmail ? emailString : null});
 
         var parsedPhone = ParseToFormat(phoneString);
