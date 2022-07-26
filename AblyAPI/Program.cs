@@ -5,11 +5,12 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Service를 container에 추가합니다.
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+// SwaggerUI를 통해 API를 읽고 테스트하기 쉽게 만듭니다.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -25,7 +26,7 @@ builder.Services.AddSwaggerGen(options =>
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
 
-// InMemory Database
+// InMemory Database : 실제 데이터베이스를 사용하려면 이 부분을 교체하면 됩니다.
 builder.Services.AddDbContext<DatabaseContext>(options =>
 {
     options.UseInMemoryDatabase("InMemoryDB");
@@ -33,7 +34,6 @@ builder.Services.AddDbContext<DatabaseContext>(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
