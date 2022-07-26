@@ -30,6 +30,13 @@ public interface IAuthService
     /// <param name="model">회원가입 입력모델: 이메일, 비밀번호, 이름, 닉네임, 전화번호</param>
     /// <returns>전화번호나 이메일이 올바르지 않으면 BadRequest, 이미 전화번호나 이메일이 겹치는 계정이 있으면 Conflict, 활성된 인증코드가 없으면 Forbidden, 성공하면 모든 활성 인증코드를 만료시키고 계정을 저장하고 Ok를 반환합니다.</returns>
     Task<StatusResponse> RegisterAsync(RegisterRequestModel model);
+
+    /// <summary>
+    /// 입력값이 올바르면 로그인 처리하고 접근토큰을 반환합니다.
+    /// </summary>
+    /// <param name="model">로그인 입력모델: 아이디, 비밀번호</param>
+    /// <returns>아이디가 올바르지 않으면 BadRequest, 아이디로 계정을 찾을 수 없으면 Unauthorized, 비밀번호가 올바르지 않으면 Forbidden, 성공하면 접근토큰을 생성하고 Ok와 접근토큰을 반환합니다.</returns>
+    Task<StatusResponse> LoginAsync(LoginRequestModel model);
 }
 
 public class AuthService : IAuthService
@@ -102,6 +109,34 @@ public class AuthService : IAuthService
         await _database.SaveChangesAsync();
 
         return new StatusResponse(StatusType.Success);
+    }
+
+    public async Task<StatusResponse> LoginAsync(LoginRequestModel model)
+    {
+        Account? account;
+        
+        if (new EmailAddressAttribute().IsValid(model.Id))
+        {
+            account = await _database.Accounts.SingleOrDefaultAsync(a => a.Email == model.Id);
+        }
+        else if (PhoneNumberUtil.IsViablePhoneNumber(model.Id))
+        {
+            account = await _database.Accounts.SingleOrDefaultAsync(a => a.Phone == ParseToFormat(model.Id));
+        }
+        else return new StatusResponse(StatusType.BadRequest);
+
+        if (account is null) return new StatusResponse(StatusType.Unauthorized);
+
+        var credential = account.Credentials.SingleOrDefault(a => a.Provider == Providers.Self);
+        if (credential is null) return new StatusResponse(StatusType.Unauthorized);
+        
+        if (!credential.VerifyPassword(model.Password)) return new StatusResponse(StatusType.Forbidden);
+
+        var accessToken = new AccessToken(account);
+        _database.AccessTokens.Add(accessToken);
+        await _database.SaveChangesAsync();
+        
+        return new StatusResponse(StatusType.Success, accessToken);
     }
 
     private string ParseToFormat(string phone) => _phone.Format(_phone.Parse(phone, "KR"), PhoneNumberFormat.E164);

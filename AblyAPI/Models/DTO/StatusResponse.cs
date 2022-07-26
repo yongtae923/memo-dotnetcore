@@ -16,6 +16,7 @@ public enum StatusType
 {
     Success,
     BadRequest,
+    Unauthorized,
     Forbidden,
     NotFound,
     RequestTimeout,
