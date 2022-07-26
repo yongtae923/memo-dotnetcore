@@ -29,7 +29,7 @@ public class AuthServiceTest
         _phone = PhoneNumberUtil.GetInstance();
     }
 
-    [Fact(DisplayName = "RequestVerificationCodeAsync: 전화번호를 입력받고 인증번호를 저장한 후 Ok response를 반환합니다")]
+    [Fact(DisplayName = "RequestVerificationCodeAsync: 전화번호를 입력받고 인증번호를 저장한 후 Ok를 반환합니다")]
     public async void Does_RequestVerificationCodeAsync_Return_Ok_Verification_Code_When_Phone_Number_Is_Right()
     {
         // Let
@@ -52,7 +52,7 @@ public class AuthServiceTest
         Assert.IsType<DateTimeOffset>(code.ExpiresAt);
     }
 
-    [Fact(DisplayName = "RequestVerificationCodeAsync: 틀린 형식의 전화번호를 입력받으면 BadRequest response를 반환합니다")]
+    [Fact(DisplayName = "RequestVerificationCodeAsync: 틀린 형식의 전화번호를 입력받으면 BadRequest를 반환합니다")]
     public async void Does_RequestVerificationCodeAsync_Return_BadRequest_When_Phone_Number_Is_Wrong()
     {
         // Let
@@ -68,7 +68,7 @@ public class AuthServiceTest
         Assert.Null(response.Body);
     }
 
-    [Fact(DisplayName = "VerifyCodeAsync: 성공하면 입력값에 해당하는 모든 활성 인증코드를 인증 처리합니다")]
+    [Fact(DisplayName = "VerifyCodeAsync: 성공하면 입력값에 해당하는 모든 활성 인증코드를 인증 처리하고 Ok를 반환합니다")]
     public async void Does_VerifyCodeAsync_Verify_Right_Codes_Well()
     {
         // Let
@@ -94,7 +94,7 @@ public class AuthServiceTest
         Assert.True(code.ExpiresAt > DateTimeOffset.Now);
     }
 
-    [Fact(DisplayName = "VerifyCodeAsync: 틀린 형식의 전화번호를 입력받으면 BadRequest response를 반환합니다")]
+    [Fact(DisplayName = "VerifyCodeAsync: 틀린 형식의 전화번호를 입력받으면 BadRequest를 반환합니다")]
     public async void Does_VerifyCodeAsync_Return_BadRequest_When_Phone_Number_Is_Wrong()
     {
         // Let
@@ -110,7 +110,7 @@ public class AuthServiceTest
         Assert.Null(response.Body);
     }
 
-    [Fact(DisplayName = "VerifyCodeAsync: 입력값에 해당하는 인증코드가 없으면 NotFound response를 반환합니다")]
+    [Fact(DisplayName = "VerifyCodeAsync: 입력값에 해당하는 인증코드가 없으면 NotFound를 반환합니다")]
     public async void Does_VerifyCodeAsync_Return_NotFound_When_There_Is_No_Right_Verification_Code()
     {
         // Let
@@ -125,7 +125,7 @@ public class AuthServiceTest
         Assert.Null(response.Body);
     }
 
-    [Fact(DisplayName = "VerifyCodeAsync: 입력값에 해당하는 인증코드가 있지만 모두 만료되어 있으면 RequestTimeout response를 반환합니다")]
+    [Fact(DisplayName = "VerifyCodeAsync: 입력값에 해당하는 인증코드가 있지만 모두 만료되어 있으면 RequestTimeout를 반환합니다")]
     public async void Does_VerifyCodeAsync_Return_RequestTimeout_Response_When_Every_Right_Verification_Code_Is_Outdated()
     {
         // Let
@@ -148,7 +148,7 @@ public class AuthServiceTest
         Assert.Null(response.Body);
     }
 
-    [Fact(DisplayName = "RegisterAsync: 입력값이 올바르면 모든 활성 인증코드를 만료시키고 계정을 저장합니다.")]
+    [Fact(DisplayName = "RegisterAsync: 입력값이 올바르면 모든 활성 인증코드를 만료시키고 계정을 저장한 뒤 Ok와 접근토큰을 반환합니다")]
     public async void Does_Register_Work_Well_When_Input_Is_Right()
     {
         // Let
@@ -177,7 +177,7 @@ public class AuthServiceTest
         Assert.IsType<DateTimeOffset>(account.CreatedAt);
     }
 
-    [Fact(DisplayName = "RegisterAsync: 이메일이 올바른 형식이 아니면 BadRequest를 반환합니다.")]
+    [Fact(DisplayName = "RegisterAsync: 이메일이 올바른 형식이 아니면 BadRequest를 반환합니다")]
     public async void Does_Register_Return_BadRequest_When_Email_Is_Not_Right()
     {
         // Let
@@ -197,7 +197,7 @@ public class AuthServiceTest
         Assert.Equal(model.Email, errorResponse.Email);
     }
 
-    [Fact(DisplayName = "RegisterAsync: 전화번호가 올바른 형식이 아니면 BadRequest를 반환합니다.")]
+    [Fact(DisplayName = "RegisterAsync: 전화번호가 올바른 형식이 아니면 BadRequest를 반환합니다")]
     public async void Does_Register_Return_BadRequest_When_Phone_Is_Not_Right()
     {
         // Let
@@ -217,7 +217,7 @@ public class AuthServiceTest
         Assert.Null(errorResponse.Email);
     }
 
-    [Fact(DisplayName = "RegisterAsync: 이메일이 겹치는 계정이 이미 가입되어 있으면 Conflict를 반환합니다.")]
+    [Fact(DisplayName = "RegisterAsync: 이메일이 겹치는 계정이 이미 가입되어 있으면 Conflict를 반환합니다")]
     public async void Does_Register_Return_Conflict_When_Another_Account_Has_Same_Email()
     {
         // Let
@@ -246,7 +246,7 @@ public class AuthServiceTest
         Assert.Equal(model.Email, errorResponse.Email);
     }
 
-    [Fact(DisplayName = "RegisterAsync: 전화번호가 겹치는 계정이 이미 가입되어 있으면 Conflict를 반환합니다.")]
+    [Fact(DisplayName = "RegisterAsync: 전화번호가 겹치는 계정이 이미 가입되어 있으면 Conflict를 반환합니다")]
     public async void Does_Register_Return_Conflict_When_Another_Account_Has_Same_Phone()
     {
         // Let
@@ -275,7 +275,7 @@ public class AuthServiceTest
         Assert.Null(errorResponse.Email);
     }
 
-    [Fact(DisplayName = "RegisterAsync: 활성화된 인증코드가 없으면 Forbidden을 반환합니다.")]
+    [Fact(DisplayName = "RegisterAsync: 활성화된 인증코드가 없으면 Forbidden을 반환합니다")]
     public async void Does_Register_Return_Forbidden_When_There_Is_No_Active_Verification_Code()
     {
         // Let
@@ -290,7 +290,7 @@ public class AuthServiceTest
         Assert.Null(response.Body);
     }
 
-    [Fact(DisplayName = "LoginAsync: 올바른 이메일을 입력 받으면 접근토큰을 생성하고 반환합니다.")]
+    [Fact(DisplayName = "LoginAsync: 올바른 이메일을 입력 받으면 접근토큰을 생성하고 반환합니다")]
     public async void Does_LoginAsync_Works_Well_When_Email_Is_Right()
     {
         // Let
@@ -315,7 +315,7 @@ public class AuthServiceTest
         Assert.Equal(token.ExpiresAt, tokenResponse.ExpiresAt);
     }
 
-    [Fact(DisplayName = "LoginAsync: 올바른 전화번호를 입력 받으면 접근토큰을 생성하고 반환합니다.")]
+    [Fact(DisplayName = "LoginAsync: 올바른 전화번호를 입력 받으면 접근토큰을 생성하고 반환합니다")]
     public async void Does_LoginAsync_Works_Well_When_Phone_Is_Right()
     {
         // Let
@@ -340,7 +340,7 @@ public class AuthServiceTest
         Assert.Equal(token.ExpiresAt, tokenResponse.ExpiresAt);
     }
 
-    [Fact(DisplayName = "LoginAsync: 올바르지 않은 형식의 아이디를 입력 받으면 BadRequest를 반환합니다.")]
+    [Fact(DisplayName = "LoginAsync: 올바르지 않은 형식의 아이디를 입력 받으면 BadRequest를 반환합니다")]
     public async void Does_LoginAsync_Return_BadRequest_When_Id_Is_Wrong_Format()
     {
         // Let
@@ -356,7 +356,7 @@ public class AuthServiceTest
         Assert.Null(response.Body);
     }
 
-    [Fact(DisplayName = "LoginAsync: 아이디에 해당하는 계정이 없으면 Unauthorized를 반환합니다.")]
+    [Fact(DisplayName = "LoginAsync: 아이디에 해당하는 계정이 없으면 Unauthorized를 반환합니다")]
     public async void Does_LoginAsync_Return_Unauthorized_When_Account_Is_Not_Found()
     {
         // Let
@@ -371,7 +371,7 @@ public class AuthServiceTest
         Assert.Null(response.Body);
     }
 
-    [Fact(DisplayName = "LoginAsync: 아이디에 해당하는 계정의 로그인 자격이 없으면 Unauthorized를 반환합니다.")]
+    [Fact(DisplayName = "LoginAsync: 아이디에 해당하는 계정의 로그인 자격이 없으면 Unauthorized를 반환합니다")]
     public async void Does_LoginAsync_Return_Unauthorized_When_Accounts_Credential_Is_Not_Found()
     {
         // Let
@@ -389,7 +389,7 @@ public class AuthServiceTest
         Assert.Null(response.Body);
     }
 
-    [Fact(DisplayName = "LoginAsync: 입력값에 해당하는 계정은 있으나 비밀번호가 틀렸으면 Forbidden을 반환합니다.")]
+    [Fact(DisplayName = "LoginAsync: 입력값에 해당하는 계정은 있으나 비밀번호가 틀렸으면 Forbidden을 반환합니다")]
     public async void Does_LoginAsync_Return_Forbidden_When_Password_Is_Wrong()
     {
         // Let

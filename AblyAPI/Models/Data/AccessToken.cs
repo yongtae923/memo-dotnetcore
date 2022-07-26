@@ -10,6 +10,7 @@ public class AccessToken
     public Account Account { get; set; }
 
     public AccessToken() { }
+    
     public AccessToken(Account account)
     {
         Token = Ulid.NewUlid().ToString();

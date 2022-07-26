@@ -104,11 +104,15 @@ public class AuthService : IAuthService
         if (validCodes.Count == 0) return new StatusResponse(StatusType.Unauthorized);
         
         validCodes.ForEach(code => code.ExpiresAt = DateTimeOffset.UtcNow);
+
+        var account = model.ToAccount(parsedPhone);
+        var accessToken = new AccessToken(account);
         
-        _database.Accounts.Add(model.ToAccount(parsedPhone));
+        account.AccessTokens.Add(accessToken);
+        _database.Accounts.Add(account);
         await _database.SaveChangesAsync();
 
-        return new StatusResponse(StatusType.Success);
+        return new StatusResponse(StatusType.Success, new AccessTokenResponse(accessToken));
     }
 
     public async Task<StatusResponse> LoginAsync(LoginRequestModel model)
