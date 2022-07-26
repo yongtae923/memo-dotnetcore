@@ -2,7 +2,16 @@ using AblyAPI.Models.Responses;
 
 namespace AblyAPI.Services;
 
-public class UserService
+public interface IUserService
+{
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
+    Task<StatusResponse> GetUserInformation();
+}
+
+public class UserService : IUserService
 {
     private readonly DatabaseContext _database;
 
@@ -10,5 +19,9 @@ public class UserService
     {
         _database = database;
     }
-    
+
+    public Task<StatusResponse> GetUserInformation()
+    {
+        throw new NotImplementedException();
+    }
 }
