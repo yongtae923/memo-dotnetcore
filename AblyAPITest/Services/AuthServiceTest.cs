@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using AblyAPI.Models.Data;
 using AblyAPI.Models.Requests;
 using AblyAPI.Models.Responses;
@@ -146,7 +148,7 @@ public class AuthServiceTest
         Assert.Null(response.Body);
     }
 
-    [Fact(DisplayName = "Register: 입력값이 올바르면 모든 활성 인증코드를 만료시키고 계정을 저장합니다.")]
+    [Fact(DisplayName = "RegisterAsync: 입력값이 올바르면 모든 활성 인증코드를 만료시키고 계정을 저장합니다.")]
     public async void Does_Register_Work_Well_When_Input_Is_Right()
     {
         // Let
@@ -175,7 +177,7 @@ public class AuthServiceTest
         Assert.IsType<DateTimeOffset>(account.CreatedAt);
     }
 
-    [Fact(DisplayName = "Register: 이메일이 올바른 형식이 아니면 BadRequest를 반환합니다.")]
+    [Fact(DisplayName = "RegisterAsync: 이메일이 올바른 형식이 아니면 BadRequest를 반환합니다.")]
     public async void Does_Register_Return_BadRequest_When_Email_Is_Not_Right()
     {
         // Let
@@ -195,7 +197,7 @@ public class AuthServiceTest
         Assert.Equal(model.Email, errorResponse.Email);
     }
 
-    [Fact(DisplayName = "Register: 전화번호가 올바른 형식이 아니면 BadRequest를 반환합니다.")]
+    [Fact(DisplayName = "RegisterAsync: 전화번호가 올바른 형식이 아니면 BadRequest를 반환합니다.")]
     public async void Does_Register_Return_BadRequest_When_Phone_Is_Not_Right()
     {
         // Let
@@ -215,7 +217,7 @@ public class AuthServiceTest
         Assert.Null(errorResponse.Email);
     }
 
-    [Fact(DisplayName = "Register: 이메일이 겹치는 계정이 이미 가입되어 있으면 Conflict를 반환합니다.")]
+    [Fact(DisplayName = "RegisterAsync: 이메일이 겹치는 계정이 이미 가입되어 있으면 Conflict를 반환합니다.")]
     public async void Does_Register_Return_Conflict_When_Another_Account_Has_Same_Email()
     {
         // Let
@@ -244,7 +246,7 @@ public class AuthServiceTest
         Assert.Equal(model.Email, errorResponse.Email);
     }
 
-    [Fact(DisplayName = "Register: 전화번호가 겹치는 계정이 이미 가입되어 있으면 Conflict를 반환합니다.")]
+    [Fact(DisplayName = "RegisterAsync: 전화번호가 겹치는 계정이 이미 가입되어 있으면 Conflict를 반환합니다.")]
     public async void Does_Register_Return_Conflict_When_Another_Account_Has_Same_Phone()
     {
         // Let
@@ -255,7 +257,7 @@ public class AuthServiceTest
             Name = Ulid.NewUlid().ToString(),
             Nickname = Ulid.NewUlid().ToString(),
             Phone = ParseToFormat(model.Phone),
-            Email = "yongtae@a-bly.com",
+            Email = "stranger@a-bly.com",
             CreatedAt = DateTimeOffset.UtcNow
         });
         await _database.SaveChangesAsync();
@@ -273,7 +275,7 @@ public class AuthServiceTest
         Assert.Null(errorResponse.Email);
     }
 
-    [Fact(DisplayName = "Register: 활성화된 인증코드가 없으면 Forbidden을 반환합니다.")]
+    [Fact(DisplayName = "RegisterAsync: 활성화된 인증코드가 없으면 Forbidden을 반환합니다.")]
     public async void Does_Register_Return_Forbidden_When_There_Is_No_Active_Verification_Code()
     {
         // Let
@@ -288,16 +290,162 @@ public class AuthServiceTest
         Assert.Null(response.Body);
     }
 
+    [Fact(DisplayName = "LoginAsync: 올바른 이메일을 입력 받으면 접근토큰을 생성하고 반환합니다.")]
+    public async void Does_LoginAsync_Works_Well_When_Email_Is_Right()
+    {
+        // Let
+        var account = await TestRegister(TestRegisterRequestModel);
+        var model = TestLoginRequestModel;
+        model.Id = account.Email;
+
+        // Do
+        var response = await _service.LoginAsync(model);
+        
+        // Check
+        Assert.IsType<StatusResponse>(response);
+        Assert.Equal(StatusType.Success, response.Status);
+        Assert.IsType<AccessTokenResponse>(response.Body);
+
+        var token = await _database.AccessTokens.SingleOrDefaultAsync(token => token.AccountId == account.Id);
+        Assert.NotNull(token);
+        
+        var tokenResponse = (AccessTokenResponse) response.Body!;
+        Assert.Equal(token!.Token, tokenResponse.Token);
+        Assert.Equal(token.RefreshToken, tokenResponse.RefreshToken);
+        Assert.Equal(token.ExpiresAt, tokenResponse.ExpiresAt);
+    }
+
+    [Fact(DisplayName = "LoginAsync: 올바른 전화번호를 입력 받으면 접근토큰을 생성하고 반환합니다.")]
+    public async void Does_LoginAsync_Works_Well_When_Phone_Is_Right()
+    {
+        // Let
+        var account = await TestRegister(TestRegisterRequestModel);
+        var model = TestLoginRequestModel;
+        model.Id = account.Phone;
+
+        // Do
+        var response = await _service.LoginAsync(model);
+
+        // Check
+        Assert.IsType<StatusResponse>(response);
+        Assert.Equal(StatusType.Success, response.Status);
+        Assert.IsType<AccessTokenResponse>(response.Body);
+
+        var token = await _database.AccessTokens.SingleOrDefaultAsync(token => token.AccountId == account.Id);
+        Assert.NotNull(token);
+
+        var tokenResponse = (AccessTokenResponse) response.Body!;
+        Assert.Equal(token!.Token, tokenResponse.Token);
+        Assert.Equal(token.RefreshToken, tokenResponse.RefreshToken);
+        Assert.Equal(token.ExpiresAt, tokenResponse.ExpiresAt);
+    }
+
+    [Fact(DisplayName = "LoginAsync: 올바르지 않은 형식의 아이디를 입력 받으면 BadRequest를 반환합니다.")]
+    public async void Does_LoginAsync_Return_BadRequest_When_Id_Is_Wrong_Format()
+    {
+        // Let
+        var model = TestLoginRequestModel;
+        model.Id = "Wrong format";
+
+        // Do
+        var response = await _service.LoginAsync(model);
+
+        // Check
+        Assert.IsType<StatusResponse>(response);
+        Assert.Equal(StatusType.BadRequest, response.Status);
+        Assert.Null(response.Body);
+    }
+
+    [Fact(DisplayName = "LoginAsync: 아이디에 해당하는 계정이 없으면 Unauthorized를 반환합니다.")]
+    public async void Does_LoginAsync_Return_Unauthorized_When_Account_Is_Not_Found()
+    {
+        // Let
+        var model = TestLoginRequestModel;
+
+        // Do
+        var response = await _service.LoginAsync(model);
+
+        // Check
+        Assert.IsType<StatusResponse>(response);
+        Assert.Equal(StatusType.Unauthorized, response.Status);
+        Assert.Null(response.Body);
+    }
+
+    [Fact(DisplayName = "LoginAsync: 아이디에 해당하는 계정의 로그인 자격이 없으면 Unauthorized를 반환합니다.")]
+    public async void Does_LoginAsync_Return_Unauthorized_When_Accounts_Credential_Is_Not_Found()
+    {
+        // Let
+        var account = await TestRegister(TestRegisterRequestModel);
+        account.Credentials.RemoveAll(_ => true);
+        await _database.SaveChangesAsync();
+        var model = TestLoginRequestModel;
+
+        // Do
+        var response = await _service.LoginAsync(model);
+
+        // Check
+        Assert.IsType<StatusResponse>(response);
+        Assert.Equal(StatusType.Unauthorized, response.Status);
+        Assert.Null(response.Body);
+    }
+
+    [Fact(DisplayName = "LoginAsync: 입력값에 해당하는 계정은 있으나 비밀번호가 틀렸으면 Forbidden을 반환합니다.")]
+    public async void Does_LoginAsync_Return_Forbidden_When_Password_Is_Wrong()
+    {
+        // Let
+        var account = await TestRegister(TestRegisterRequestModel);
+        var model = TestLoginRequestModel;
+        model.Password = "Wrong password";
+
+        // Do
+        var response = await _service.LoginAsync(model);
+
+        // Check
+        Assert.IsType<StatusResponse>(response);
+        Assert.Equal(StatusType.Forbidden, response.Status);
+        Assert.Null(response.Body);
+    }
+    
     private string ParseToFormat(string phone) => _phone.Format(_phone.Parse(phone, "KR"), PhoneNumberFormat.E164);
 
     private static PhoneNumberRequestModel TestPhoneNumberRequestModel => new() {Phone = "01012345678"};
 
     private static RegisterRequestModel TestRegisterRequestModel => new()
     {
-        Email = "yongtea@a-bly.com",
+        Email = "yongtae@a-bly.com",
         Password = "yongtae@ably!",
         Name = "Yongtae Kim",
         Nickname = "Ably-dev",
         Phone = "01012345678"
     };
+    
+    private static LoginRequestModel TestLoginRequestModel => new()
+    {
+        Id = "yongtae@a-bly.com",
+        Password = "yongtae@ably!"
+    };
+
+    private async Task<Account> TestRegister(RegisterRequestModel model)
+    {
+        var account = new Account
+        {
+            Id = Ulid.NewUlid().ToString(),
+            Name = model.Name,
+            Nickname = model.Nickname,
+            Phone = ParseToFormat(model.Phone),
+            Email = model.Email,
+            Credentials = new List<Credential>
+            {
+                new()
+                {
+                    Password = model.Password,
+                    Provider = Providers.Self,
+                    LastUpdatedAt = DateTimeOffset.UtcNow
+                }
+            }
+        };
+        _database.Accounts.Add(account);
+        await _database.SaveChangesAsync();
+        return account;
+    }
 }
