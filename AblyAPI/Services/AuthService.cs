@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using AblyAPI.Models.Data;
-using AblyAPI.Models.DTO;
 using AblyAPI.Models.Requests;
+using AblyAPI.Models.Responses;
 using Microsoft.EntityFrameworkCore;
 using PhoneNumbers;
 
@@ -88,15 +88,15 @@ public class AuthService : IAuthService
 
         var invalidPhone = !PhoneNumberUtil.IsViablePhoneNumber(phoneString);
         var invalidEmail = !new EmailAddressAttribute().IsValid(emailString);
-        if (invalidPhone || invalidEmail) return new StatusResponse(StatusType.BadRequest,
-            new {Phone = invalidPhone ? phoneString : null, Email = invalidEmail ? emailString : null});
+        if (invalidPhone || invalidEmail) return new StatusResponse(StatusType.BadRequest, new RegisterErrorResponse
+            {Phone = invalidPhone ? phoneString : null, Email = invalidEmail ? emailString : null});
 
         var parsedPhone = ParseToFormat(phoneString);
         
         var existingPhone = await _database.Accounts.AnyAsync(account => account.Phone == parsedPhone);
         var existingEmail = await _database.Accounts.AnyAsync(account => account.Email == emailString);
-        if (existingPhone || existingEmail) return new StatusResponse(StatusType.Conflict,
-            new {Phone = existingPhone ? phoneString : null, Email = existingEmail ? emailString : null});
+        if (existingPhone || existingEmail) return new StatusResponse(StatusType.Conflict, new RegisterErrorResponse
+            {Phone = existingPhone ? phoneString : null, Email = existingEmail ? emailString : null});
 
         var validCodes = _database.VerificationCodes.Where(code =>
             code.Phone == parsedPhone && code.VerifiesAt < DateTimeOffset.UtcNow &&
@@ -136,7 +136,7 @@ public class AuthService : IAuthService
         _database.AccessTokens.Add(accessToken);
         await _database.SaveChangesAsync();
         
-        return new StatusResponse(StatusType.Success, accessToken);
+        return new StatusResponse(StatusType.Success, new AccessTokenResponse(accessToken));
     }
 
     private string ParseToFormat(string phone) => _phone.Format(_phone.Parse(phone, "KR"), PhoneNumberFormat.E164);

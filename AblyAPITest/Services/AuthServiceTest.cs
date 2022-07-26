@@ -1,8 +1,8 @@
 using System;
 using System.Linq;
 using AblyAPI.Models.Data;
-using AblyAPI.Models.DTO;
 using AblyAPI.Models.Requests;
+using AblyAPI.Models.Responses;
 using AblyAPI.Services;
 using Microsoft.EntityFrameworkCore;
 using PhoneNumbers;
@@ -188,8 +188,11 @@ public class AuthServiceTest
         // Check
         Assert.IsType<StatusResponse>(response);
         Assert.Equal(StatusType.BadRequest, response.Status);
-        Assert.NotNull(response.Body);
-        Assert.Equal($"{{ Phone = , Email = {model.Email} }}", response.Body!.ToString());
+        Assert.IsType<RegisterErrorResponse>(response.Body);
+
+        var errorResponse = (RegisterErrorResponse) response.Body!;
+        Assert.Null(errorResponse.Phone);
+        Assert.Equal(model.Email, errorResponse.Email);
     }
 
     [Fact(DisplayName = "Register: 전화번호가 올바른 형식이 아니면 BadRequest를 반환합니다.")]
@@ -205,8 +208,11 @@ public class AuthServiceTest
         // Check
         Assert.IsType<StatusResponse>(response);
         Assert.Equal(StatusType.BadRequest, response.Status);
-        Assert.NotNull(response.Body);
-        Assert.Equal($"{{ Phone = {model.Phone}, Email =  }}", response.Body!.ToString());
+        Assert.IsType<RegisterErrorResponse>(response.Body);
+
+        var errorResponse = (RegisterErrorResponse) response.Body!;
+        Assert.Equal(model.Phone, errorResponse.Phone);
+        Assert.Null(errorResponse.Email);
     }
 
     [Fact(DisplayName = "Register: 이메일이 겹치는 계정이 이미 가입되어 있으면 Conflict를 반환합니다.")]
@@ -231,8 +237,11 @@ public class AuthServiceTest
         // Check
         Assert.IsType<StatusResponse>(response);
         Assert.Equal(StatusType.Conflict, response.Status);
-        Assert.NotNull(response.Body);
-        Assert.Equal($"{{ Phone = , Email = {model.Email} }}", response.Body!.ToString());
+        Assert.IsType<RegisterErrorResponse>(response.Body);
+
+        var errorResponse = (RegisterErrorResponse) response.Body!;
+        Assert.Null(errorResponse.Phone);
+        Assert.Equal(model.Email, errorResponse.Email);
     }
 
     [Fact(DisplayName = "Register: 전화번호가 겹치는 계정이 이미 가입되어 있으면 Conflict를 반환합니다.")]
@@ -257,8 +266,11 @@ public class AuthServiceTest
         // Check
         Assert.IsType<StatusResponse>(response);
         Assert.Equal(StatusType.Conflict, response.Status);
-        Assert.NotNull(response.Body);
-        Assert.Equal($"{{ Phone = {model.Phone}, Email =  }}", response.Body!.ToString());
+        Assert.IsType<RegisterErrorResponse>(response.Body);
+
+        var errorResponse = (RegisterErrorResponse) response.Body!;
+        Assert.Equal(model.Phone, errorResponse.Phone);
+        Assert.Null(errorResponse.Email);
     }
 
     [Fact(DisplayName = "Register: 활성화된 인증코드가 없으면 Forbidden을 반환합니다.")]

@@ -1,4 +1,4 @@
-namespace AblyAPI.Models.DTO;
+namespace AblyAPI.Models.Responses;
 
 public class StatusResponse
 {

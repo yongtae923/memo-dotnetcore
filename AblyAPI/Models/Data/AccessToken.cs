@@ -9,12 +9,12 @@ public class AccessToken
     public string AccountId { get; set; }
     public Account Account { get; set; }
 
+    public AccessToken() { }
     public AccessToken(Account account)
     {
         Token = Ulid.NewUlid().ToString();
         RefreshToken = Ulid.NewUlid().ToString();
         ExpiresAt = DateTimeOffset.UtcNow.AddDays(7);
-        Account = account;
         AccountId = account.Id;
     }
 }
