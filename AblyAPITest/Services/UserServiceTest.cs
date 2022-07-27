@@ -1,21 +1,18 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using AblyAPI.Models.Data;
-using AblyAPI.Models.Requests;
 using AblyAPI.Models.Responses;
 using AblyAPI.Services;
+using AblyAPITest.Helpers;
 using Microsoft.EntityFrameworkCore;
-using PhoneNumbers;
 using Xunit;
 
 namespace AblyAPITest.Services;
 
-public class UserServiceTest
+public class UserServiceTest : ServiceTestHelper
 {
     private readonly DatabaseContext _database;
     private readonly IUserService _service;
-    private readonly PhoneNumberUtil _phone;
 
     public UserServiceTest()
     {
@@ -25,22 +22,13 @@ public class UserServiceTest
             .Options;
         _database = new DatabaseContext(options);
         _service = new UserService(_database);
-        _phone = PhoneNumberUtil.GetInstance();
     }
 
     [Fact(DisplayName = "GetUserInformationAsync : 입력값에 해당하는 계정이 있으면 계정 정보를 포함한 Ok를 반환합니다")]
     public async void Does_GetUserInformationAsync_Works_Well()
     {
         // Let
-        var account = new Account
-        {
-            Id = Ulid.NewUlid().ToString(),
-            Name = Ulid.NewUlid().ToString(),
-            Nickname = Ulid.NewUlid().ToString(),
-            Phone = "01012345678",
-            Email = "yongtae@a-bly.com",
-            CreatedAt = DateTimeOffset.UtcNow
-        };
+        var account = TestAccount();
         _database.Accounts.Add(account);
         await _database.SaveChangesAsync();
         
@@ -77,8 +65,9 @@ public class UserServiceTest
     {
         // Let
         const string newPassword = "yongtae@ably!";
-        
-        var account = await TestRegister(TestRegisterRequestModel);
+
+        var account = TestAccount(TestRegisterRequestModel);
+        _database.Accounts.Add(account);
         
         var codeBefore = new VerificationCode(account.Phone) {VerifiesAt = DateTimeOffset.UtcNow};
         _database.VerificationCodes.Add(codeBefore);
@@ -122,16 +111,11 @@ public class UserServiceTest
     {
         // Let
         const string newPassword = "yongtae@ably!";
-        var account = new Account
-        {
-            Id = Ulid.NewUlid().ToString(),
-            Name = "Yongtae Kim",
-            Nickname = "Ably-dev",
-            Phone = "01012345678",
-            Email = "yongtae@a-bly.com",
-            Credentials = new List<Credential>()
-        };
+        
+        var account = TestAccount();
+        account.Credentials = new List<Credential>();
         _database.Accounts.Add(account);
+        await _database.SaveChangesAsync();
 
         // Do
         var response = await _service.ChangePasswordAsync(account.Id, newPassword);
@@ -148,8 +132,10 @@ public class UserServiceTest
         // Let
         const string newPassword = "yongtae@ably!";
 
-        var account = await TestRegister(TestRegisterRequestModel);
-
+        var account = TestAccount(TestRegisterRequestModel);
+        _database.Accounts.Add(account);
+        await _database.SaveChangesAsync();
+        
         // Do
         var response = await _service.ChangePasswordAsync(account.Id, newPassword);
 
@@ -157,40 +143,5 @@ public class UserServiceTest
         Assert.IsType<StatusResponse>(response);
         Assert.Equal(StatusType.Forbidden, response.Status);
         Assert.Null(response.Body);
-    }
-
-    private string ParseToFormat(string phone) => _phone.Format(_phone.Parse(phone, "KR"), PhoneNumberFormat.E164);
-
-    private static RegisterRequestModel TestRegisterRequestModel => new()
-    {
-        Email = "yongtae@a-bly.com",
-        Password = "yongtae@ably!",
-        Name = "Yongtae Kim",
-        Nickname = "Ably-dev",
-        Phone = "01012345678"
-    };
-    
-    private async Task<Account> TestRegister(RegisterRequestModel model)
-    {
-        var account = new Account
-        {
-            Id = Ulid.NewUlid().ToString(),
-            Name = model.Name,
-            Nickname = model.Nickname,
-            Phone = ParseToFormat(model.Phone),
-            Email = model.Email,
-            Credentials = new List<Credential>
-            {
-                new()
-                {
-                    Password = model.Password,
-                    Provider = Providers.Self,
-                    LastUpdatedAt = DateTimeOffset.UtcNow
-                }
-            }
-        };
-        _database.Accounts.Add(account);
-        await _database.SaveChangesAsync();
-        return account;
     }
 }

@@ -1,18 +1,16 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using AblyAPI.Models.Data;
-using AblyAPI.Models.Requests;
 using AblyAPI.Models.Responses;
 using AblyAPI.Services;
+using AblyAPITest.Helpers;
 using Microsoft.EntityFrameworkCore;
 using PhoneNumbers;
 using Xunit;
 
 namespace AblyAPITest.Services;
 
-public class AuthServiceTest
+public class AuthServiceTest : ServiceTestHelper
 {
     private readonly DatabaseContext _database;
     private readonly IAuthService _service;
@@ -164,8 +162,8 @@ public class AuthServiceTest
         // Check
         Assert.IsType<StatusResponse>(response);
         Assert.Equal(StatusType.Success, response.Status);
-        Assert.Null(response.Body);
-        
+        Assert.IsType<AccessTokenResponse>(response.Body);
+
         Assert.True(_database.VerificationCodes.First().ExpiresAt < DateTimeOffset.UtcNow);
         var account = await _database.Accounts.FirstOrDefaultAsync();
         Assert.NotNull(account);
@@ -174,7 +172,14 @@ public class AuthServiceTest
         Assert.Equal(model.ToAccount(phone).Nickname, account.Nickname);
         Assert.Equal(phone, account.Phone);
         Assert.Equal(model.ToAccount(phone).Email, account.Email);
-        Assert.IsType<DateTimeOffset>(account.CreatedAt);
+        Assert.IsType<DateTimeOffset>(account.CreatedAt);    
+        
+        var token = await _database.AccessTokens.SingleOrDefaultAsync(token => token.AccountId == account.Id); 
+        Assert.NotNull(token);
+        var tokenResponse = (AccessTokenResponse) response.Body!;
+        Assert.Equal(token!.Token, tokenResponse.Token); 
+        Assert.Equal(token.RefreshToken, tokenResponse.RefreshToken); 
+        Assert.Equal(token.ExpiresAt, tokenResponse.ExpiresAt);
     }
 
     [Fact(DisplayName = "RegisterAsync: 이메일이 올바른 형식이 아니면 BadRequest를 반환합니다")]
@@ -222,15 +227,11 @@ public class AuthServiceTest
     {
         // Let
         var model = TestRegisterRequestModel;
-        _database.Accounts.Add(new Account
-        {
-            Id = Ulid.NewUlid().ToString(),
-            Name = Ulid.NewUlid().ToString(),
-            Nickname = Ulid.NewUlid().ToString(),
-            Phone = "01087654321",
-            Email = model.Email,
-            CreatedAt = DateTimeOffset.UtcNow
-        });
+        var account = TestAccount();
+        account.Phone = "01087654321";
+        account.Email = model.Email;
+        
+        _database.Accounts.Add(account);
         await _database.SaveChangesAsync();
 
         // Do
@@ -251,15 +252,11 @@ public class AuthServiceTest
     {
         // Let
         var model = TestRegisterRequestModel;
-        _database.Accounts.Add(new Account
-        {
-            Id = Ulid.NewUlid().ToString(),
-            Name = Ulid.NewUlid().ToString(),
-            Nickname = Ulid.NewUlid().ToString(),
-            Phone = ParseToFormat(model.Phone),
-            Email = "stranger@a-bly.com",
-            CreatedAt = DateTimeOffset.UtcNow
-        });
+        var account = TestAccount();
+        account.Phone = ParseToFormat(model.Phone);
+        account.Email = "stranger@a-bly.com";
+        
+        _database.Accounts.Add(account);
         await _database.SaveChangesAsync();
 
         // Do
@@ -294,7 +291,9 @@ public class AuthServiceTest
     public async void Does_LoginAsync_Works_Well_When_Email_Is_Right()
     {
         // Let
-        var account = await TestRegister(TestRegisterRequestModel);
+        var account = TestAccount(TestRegisterRequestModel);
+        _database.Accounts.Add(account);
+        await _database.SaveChangesAsync();
         var model = TestLoginRequestModel;
         model.Id = account.Email;
 
@@ -319,7 +318,9 @@ public class AuthServiceTest
     public async void Does_LoginAsync_Works_Well_When_Phone_Is_Right()
     {
         // Let
-        var account = await TestRegister(TestRegisterRequestModel);
+        var account = TestAccount(TestRegisterRequestModel);
+        _database.Accounts.Add(account);
+        await _database.SaveChangesAsync();
         var model = TestLoginRequestModel;
         model.Id = account.Phone;
 
@@ -375,7 +376,9 @@ public class AuthServiceTest
     public async void Does_LoginAsync_Return_Unauthorized_When_Accounts_Credential_Is_Not_Found()
     {
         // Let
-        var account = await TestRegister(TestRegisterRequestModel);
+        var account = TestAccount(TestRegisterRequestModel);
+        _database.Accounts.Add(account);
+        await _database.SaveChangesAsync();
         account.Credentials.RemoveAll(_ => true);
         await _database.SaveChangesAsync();
         var model = TestLoginRequestModel;
@@ -393,7 +396,9 @@ public class AuthServiceTest
     public async void Does_LoginAsync_Return_Forbidden_When_Password_Is_Wrong()
     {
         // Let
-        var account = await TestRegister(TestRegisterRequestModel);
+        var account = TestAccount(TestRegisterRequestModel);
+        _database.Accounts.Add(account);
+        await _database.SaveChangesAsync();
         var model = TestLoginRequestModel;
         model.Password = "Wrong password";
 
@@ -404,48 +409,5 @@ public class AuthServiceTest
         Assert.IsType<StatusResponse>(response);
         Assert.Equal(StatusType.Forbidden, response.Status);
         Assert.Null(response.Body);
-    }
-    
-    private string ParseToFormat(string phone) => _phone.Format(_phone.Parse(phone, "KR"), PhoneNumberFormat.E164);
-
-    private static PhoneNumberRequestModel TestPhoneNumberRequestModel => new() {Phone = "01012345678"};
-
-    private static RegisterRequestModel TestRegisterRequestModel => new()
-    {
-        Email = "yongtae@a-bly.com",
-        Password = "yongtae@ably!",
-        Name = "Yongtae Kim",
-        Nickname = "Ably-dev",
-        Phone = "01012345678"
-    };
-    
-    private static LoginRequestModel TestLoginRequestModel => new()
-    {
-        Id = "yongtae@a-bly.com",
-        Password = "yongtae@ably!"
-    };
-
-    private async Task<Account> TestRegister(RegisterRequestModel model)
-    {
-        var account = new Account
-        {
-            Id = Ulid.NewUlid().ToString(),
-            Name = model.Name,
-            Nickname = model.Nickname,
-            Phone = ParseToFormat(model.Phone),
-            Email = model.Email,
-            Credentials = new List<Credential>
-            {
-                new()
-                {
-                    Password = model.Password,
-                    Provider = Providers.Self,
-                    LastUpdatedAt = DateTimeOffset.UtcNow
-                }
-            }
-        };
-        _database.Accounts.Add(account);
-        await _database.SaveChangesAsync();
-        return account;
     }
 }
