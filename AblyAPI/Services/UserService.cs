@@ -44,10 +44,11 @@ public class UserService : IUserService
     public async Task<StatusResponse> ChangePasswordAsync(string accountId, string newPassword)
     {
         // 아이디에 해당하는 계정과 자격을 찾습니다.
-        var account = await _database.Accounts.FirstOrDefaultAsync(account => account.Id == accountId);
-        if (account is null) return new StatusResponse(StatusType.Unauthorized);
+        var account = await _database.Accounts.Include(account => account.Credentials)
+            .FirstOrDefaultAsync(account => account.Id == accountId);
+        if (account?.Credentials is null) return new StatusResponse(StatusType.Unauthorized);
         var credential = account.Credentials.FirstOrDefault();
-        if (credential is null) return new StatusResponse(StatusType.Unauthorized);
+        if (credential?.Password is null) return new StatusResponse(StatusType.Unauthorized);
         
         // 만료되지 않고 활성화된 인증코드가 있는지 확인합니다.
         var validCodes = _database.VerificationCodes.Where(code =>

@@ -47,12 +47,17 @@ public class UserController : Controller
     }
 
     /// <summary>
-    /// 현재 계정의 비밀번호를 변경합니다. 실행을 위해서 우측에 엑세스토큰을 입력해주세요.
+    /// 현재 계정의 비밀번호를 변경합니다. 실행을 위해서 다시 전화번호 인증을 하고 우측에 엑세스토큰을 입력해주세요.
     /// </summary>
     /// <param name="accountId"></param>
     /// <param name="newPassword"></param>
-    /// <returns></returns>
+    /// <response code="200">성공, body에 사용자 정보가 있습니다</response>
+    /// <response code="401">엑세스토큰이 없거나 계정을 찾을 수 없으면 실패</response>
+    /// <response code="403">전화번호 인증을 하지 않아 활성화된 엑세스 토큰이 없거나 만료되었으면 실패</response>
     [HttpPut("accounts/{accountId}/credentials")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [AuthorizationFilter]
     public async Task<IActionResult> ChangePassword(string accountId, string newPassword)
     {
@@ -61,7 +66,9 @@ public class UserController : Controller
         var response = await _service.ChangePasswordAsync(AccountId, newPassword);
         return response.Status switch
         {
-            _ => Ok()
+            StatusType.Success => Ok(),
+            StatusType.Unauthorized => Unauthorized(),
+            _ => StatusCode(403)
         };
     }
 }
