@@ -101,7 +101,7 @@ public class AuthService : IAuthService
         var validCodes = _database.VerificationCodes.Where(code =>
             code.Phone == parsedPhone && code.VerifiesAt < DateTimeOffset.UtcNow &&
             code.ExpiresAt > DateTimeOffset.UtcNow).ToList();
-        if (validCodes.Count == 0) return new StatusResponse(StatusType.Unauthorized);
+        if (validCodes.Count == 0) return new StatusResponse(StatusType.Forbidden);
         
         validCodes.ForEach(code => code.ExpiresAt = DateTimeOffset.UtcNow);
 

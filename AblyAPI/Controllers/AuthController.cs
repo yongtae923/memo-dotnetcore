@@ -111,7 +111,7 @@ public class AuthController : Controller
         {
             StatusType.Success => Ok(response.Body),
             StatusType.BadRequest => BadRequest(response.Body),
-            StatusType.Unauthorized => Unauthorized(),
+            StatusType.Forbidden => StatusCode(403),
             _ => Conflict(response.Body)
         };
     }
