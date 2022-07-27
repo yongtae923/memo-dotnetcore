@@ -1,4 +1,4 @@
-using System.Net.Http.Headers;
+using AblyAPI.Filters;
 using AblyAPI.Models.Responses;
 using AblyAPI.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +9,7 @@ namespace AblyAPI.Controllers;
 public class UserController : Controller
 {
     private readonly IUserService _service;
+    public string AccountId { get; set; }
 
     public UserController(IUserService service)
     {
@@ -32,12 +33,10 @@ public class UserController : Controller
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [AuthorizationFilter]
     public async Task<IActionResult> GetUserInformation(string accountId)
     {
-        if (AuthenticationHeaderValue.TryParse(HttpContext.Request.Headers.Authorization, out var headerValue) ||
-            headerValue?.Parameter is null) return Unauthorized();
-
-        var response = await _service.GetUserInformationAsync(accountId, headerValue.Parameter);
+        var response = await _service.GetUserInformationAsync(accountId, AccountId);
         return response.Status switch
         {
             StatusType.Success => Ok(response.Body),
