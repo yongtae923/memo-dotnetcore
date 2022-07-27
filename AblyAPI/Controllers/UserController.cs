@@ -27,8 +27,8 @@ public class UserController : Controller
     /// 
     /// </remarks>
     /// <response code="200">성공, body에 사용자 정보가 있습니다</response>
-    /// <response code="401">접근토큰이 없거나 찾을 수 없으면 실패</response>
-    /// <response code="403">접근토큰으로 찾은 계정이 입력값과 다르면 실패</response>
+    /// <response code="401">접근토큰이 없거나 계정을 찾을 수 없으면 실패</response>
+    /// <response code="403">접근토큰으로 찾은 계정과 정보를 얻으려는 계정이 다르면 실패</response>
     [HttpGet("accounts/{accountId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -36,12 +36,13 @@ public class UserController : Controller
     [AuthorizationFilter]
     public async Task<IActionResult> GetUserInformation(string accountId)
     {
-        var response = await _service.GetUserInformationAsync(accountId, AccountId);
+        if (accountId != AccountId) return StatusCode(403);
+        
+        var response = await _service.GetUserInformationAsync(accountId);
         return response.Status switch
         {
             StatusType.Success => Ok(response.Body),
-            StatusType.Unauthorized => Unauthorized(),
-            _ => StatusCode(403)
+            _ => Unauthorized()
         };
     }
 }
