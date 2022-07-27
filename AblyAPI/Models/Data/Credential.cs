@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace AblyAPI.Models.Data;
 
 public class Credential
@@ -13,12 +15,13 @@ public class Credential
     public string Password
     {
         get => _passwordKey;
-        set => _passwordKey = BCrypt.Net.BCrypt.HashPassword(value);
+        set => _passwordKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
     }
 
     public bool VerifyPassword(string password)
     {
-        return BCrypt.Net.BCrypt.Verify(password, _passwordKey);
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(
+            Convert.ToBase64String(Encoding.UTF8.GetBytes(password)))) == _passwordKey;
     }
 
     public Credential() { }

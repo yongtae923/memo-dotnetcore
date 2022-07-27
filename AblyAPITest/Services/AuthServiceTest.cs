@@ -177,7 +177,8 @@ public class AuthServiceTest : ServiceTestHelper
         var token = await _database.AccessTokens.SingleOrDefaultAsync(token => token.AccountId == account.Id); 
         Assert.NotNull(token);
         var tokenResponse = (AccessTokenResponse) response.Body!;
-        Assert.Equal(token!.Token, tokenResponse.Token); 
+        Assert.Equal(token!.AccountId, tokenResponse.AccountId); 
+        Assert.Equal(token.Token, tokenResponse.Token); 
         Assert.Equal(token.RefreshToken, tokenResponse.RefreshToken); 
         Assert.Equal(token.ExpiresAt, tokenResponse.ExpiresAt);
     }
@@ -309,7 +310,8 @@ public class AuthServiceTest : ServiceTestHelper
         Assert.NotNull(token);
         
         var tokenResponse = (AccessTokenResponse) response.Body!;
-        Assert.Equal(token!.Token, tokenResponse.Token);
+        Assert.Equal(token!.AccountId, tokenResponse.AccountId);
+        Assert.Equal(token.Token, tokenResponse.Token);
         Assert.Equal(token.RefreshToken, tokenResponse.RefreshToken);
         Assert.Equal(token.ExpiresAt, tokenResponse.ExpiresAt);
     }
@@ -336,7 +338,8 @@ public class AuthServiceTest : ServiceTestHelper
         Assert.NotNull(token);
 
         var tokenResponse = (AccessTokenResponse) response.Body!;
-        Assert.Equal(token!.Token, tokenResponse.Token);
+        Assert.Equal(token!.AccountId, tokenResponse.AccountId);
+        Assert.Equal(token.Token, tokenResponse.Token);
         Assert.Equal(token.RefreshToken, tokenResponse.RefreshToken);
         Assert.Equal(token.ExpiresAt, tokenResponse.ExpiresAt);
     }

@@ -135,18 +135,20 @@ public class AuthService : IAuthService
         // 아이디가 가입된 계정의 이메일이나 전화번호인지 확인합니다.
         if (new EmailAddressAttribute().IsValid(model.Id))
         {
-            account = await _database.Accounts.SingleOrDefaultAsync(a => a.Email == model.Id);
+            account = await _database.Accounts.Include(a => a.Credentials).Include(a => a.AccessTokens)
+                .SingleOrDefaultAsync(a => a.Email == model.Id);
         }
         else if (PhoneNumberUtil.IsViablePhoneNumber(model.Id))
         {
-            account = await _database.Accounts.SingleOrDefaultAsync(a => a.Phone == ParseToFormat(model.Id));
+            account = await _database.Accounts.Include(a => a.Credentials).Include(a => a.AccessTokens)
+                .SingleOrDefaultAsync(a => a.Phone == ParseToFormat(model.Id));
         }
         else return new StatusResponse(StatusType.BadRequest);
 
         if (account is null) return new StatusResponse(StatusType.Unauthorized);
 
         // 계정의 자격을 확인합니다.
-        var credential = account.Credentials.SingleOrDefault(a => a.Provider == Providers.Self);
+        var credential = account.Credentials.SingleOrDefault(c => c.Provider == Providers.Self);
         if (credential is null) return new StatusResponse(StatusType.Unauthorized);
         
         // 비밀번호를 확인합니다.

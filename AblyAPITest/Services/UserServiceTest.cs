@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using AblyAPI.Models.Data;
 using AblyAPI.Models.Responses;
 using AblyAPI.Services;
@@ -88,7 +89,7 @@ public class UserServiceTest : ServiceTestHelper
         var credentialAfter =
             await _database.Credentials.SingleOrDefaultAsync(credential => credential.AccountId == account.Id);
         Assert.NotNull(credentialAfter);
-        Assert.True(credentialAfter!.VerifyPassword(newPassword));
+        Assert.True(credentialAfter!.Password == Convert.ToBase64String(Encoding.UTF8.GetBytes(newPassword)));
     }
 
     [Fact(DisplayName = "ChangePasswordAsync: 입력한 계정을 찾을 수 없으면 Unauthorized를 반환합니다")]

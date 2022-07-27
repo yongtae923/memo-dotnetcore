@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using AblyAPI.Models.Data;
 using AblyAPI.Models.Requests;
 using PhoneNumbers;
@@ -55,7 +56,7 @@ public class ServiceTestHelper
         {
             new()
             {
-                Password = model.Password,
+                Password = Convert.ToBase64String(Encoding.UTF8.GetBytes(model.Password)),
                 Provider = Providers.Self,
                 LastUpdatedAt = DateTimeOffset.UtcNow
             }
