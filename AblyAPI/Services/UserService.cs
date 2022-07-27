@@ -9,8 +9,16 @@ public interface IUserService
     /// 입력값에 알맞은 사용자 정보를 반환합니다.
     /// </summary>
     /// <param name="accountId">계정 아이디</param>
-    /// <returns>접근토큰이 없거나 찾을 수 없으면 Unauthorized, 접근토큰으로 찾은 계정이 입력값과 다르면 Forbidden, 성공하면 Ok와 사용자 정보를 반환합니다.</returns>
+    /// <returns>계정을 찾을 수 없으면 Unauthorized, 성공하면 Ok와 사용자 정보를 반환합니다.</returns>
     Task<StatusResponse> GetUserInformationAsync(string accountId);
+
+    /// <summary>
+    /// 입력값에 알맞게 비밀번호를 변경합니다.
+    /// </summary>
+    /// <param name="accountId">계정 아이디</param>
+    /// <param name="newPassword">바꾸려는 비밀번호</param>
+    /// <returns>계정을 찾을 수 없으면 Unauthorized, 성공하면 Ok를 반환합니다.</returns>
+    Task<StatusResponse> ChangePasswordAsync(string accountId, string newPassword);
 }
 
 public class UserService : IUserService
@@ -29,5 +37,10 @@ public class UserService : IUserService
         return account != null
             ? new StatusResponse(StatusType.Success, new UserInformationResponse(account))
             : new StatusResponse(StatusType.Unauthorized);
+    }
+
+    public async Task<StatusResponse> ChangePasswordAsync(string accountId, string newPassword)
+    {
+        throw new NotImplementedException();
     }
 }

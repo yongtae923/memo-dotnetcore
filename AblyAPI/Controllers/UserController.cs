@@ -45,4 +45,14 @@ public class UserController : Controller
             _ => Unauthorized()
         };
     }
+
+    [HttpPut("accounts/{accountId}/credentials")]
+    public async Task<IActionResult> ChangePassword(string newPassword)
+    {
+        var response = await _service.ChangePasswordAsync(AccountId, newPassword);
+        return response.Status switch
+        {
+            _ => Ok()
+        };
+    }
 }
