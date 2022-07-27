@@ -97,7 +97,7 @@ public class AuthController : Controller
     /// </remarks>
     /// <response code="200">성공, body에 접근토큰 정보가 있습니다</response>
     /// <response code="400">입력한 전화번호나 이메일이 올바른 형식이 아니면 실패</response>
-    /// <response code="401">입력한 전화번호에 해당하는 활성 인증코드가 없으면 실패</response>
+    /// <response code="403">입력한 전화번호에 해당하는 활성 인증코드가 없으면 실패</response>
     /// <response code="409">입력한 전화번호나 이메일이 겹치는 계정이 이미 있으면 실패</response>
     [HttpPost("accounts")]
     [ProducesResponseType(StatusCodes.Status200OK)]

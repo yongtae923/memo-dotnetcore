@@ -26,12 +26,7 @@ public class RegisterRequestModel
         Phone = parsedPhone,
         Email = Email,
         CreatedAt = DateTimeOffset.UtcNow,
-        Credentials = new List<Credential> {new()
-        {
-            Provider = Providers.Self,
-            LastUpdatedAt = DateTimeOffset.UtcNow,
-            Password = Password
-        }},
+        Credentials = new List<Credential>(),
         AccessTokens = new List<AccessToken>()
     };
 }

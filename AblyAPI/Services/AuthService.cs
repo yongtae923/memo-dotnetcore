@@ -52,9 +52,11 @@ public class AuthService : IAuthService
 
     public async Task<StatusResponse> RequestVerificationCodeAsync(PhoneNumberRequestModel model)
     {
+        // 전화번호가 올바른 형식인지 확인합니다.
         var phoneString = model.Phone;
         if (!PhoneNumberUtil.IsViablePhoneNumber(phoneString)) return new StatusResponse(StatusType.BadRequest);
         
+        // 전화번호에 해당하는 인증코드를 생성하고 저장하고 반환합니다.
         var code = new VerificationCode(ParseToFormat(phoneString));
         
         _database.VerificationCodes.Add(code);
@@ -65,16 +67,20 @@ public class AuthService : IAuthService
 
     public async Task<StatusResponse> VerifyCodeAsync(string verifyingCode, PhoneNumberRequestModel model)
     {
+        // 전화번호가 올바른 형식인지 확인합니다.
         var phoneString = model.Phone;
         if (!PhoneNumberUtil.IsViablePhoneNumber(phoneString)) return new StatusResponse(StatusType.BadRequest);
 
+        // 전화번호에 해당하는 인증코드를 찾습니다.
         var matchedCodes = _database.VerificationCodes.Where(code =>
             code.Code == verifyingCode && code.Phone == ParseToFormat(phoneString));
         if (!matchedCodes.Any()) return new StatusResponse(StatusType.NotFound);
 
+        // 인증코드가 만료되지 않았는지 확인합니다.
         var activeCodes = matchedCodes.Where(code => code.ExpiresAt > DateTimeOffset.UtcNow);
         if (!activeCodes.Any()) return new StatusResponse(StatusType.RequestTimeout);
 
+        // 인증코드를 활성화합니다.
         activeCodes.ToList().ForEach(code => code.VerifiesAt = DateTimeOffset.UtcNow);
         await _database.SaveChangesAsync();
 
@@ -86,6 +92,7 @@ public class AuthService : IAuthService
         var phoneString = model.Phone;
         var emailString = model.Email;
 
+        // 전화번호와 이메일이 각각 올바른 형식인지 확인합니다.
         var invalidPhone = !PhoneNumberUtil.IsViablePhoneNumber(phoneString);
         var invalidEmail = !new EmailAddressAttribute().IsValid(emailString);
         if (invalidPhone || invalidEmail) return new StatusResponse(StatusType.BadRequest, new RegisterErrorResponse
@@ -93,25 +100,31 @@ public class AuthService : IAuthService
 
         var parsedPhone = ParseToFormat(phoneString);
         
+        // 이미 가입된 계정에서 전화번호나 이메일이 겹치는지 확인합니다. 
         var existingPhone = await _database.Accounts.AnyAsync(account => account.Phone == parsedPhone);
         var existingEmail = await _database.Accounts.AnyAsync(account => account.Email == emailString);
         if (existingPhone || existingEmail) return new StatusResponse(StatusType.Conflict, new RegisterErrorResponse
             {Phone = existingPhone ? phoneString : null, Email = existingEmail ? emailString : null});
 
+        // 만료되지 않고 활성화 되어있는 인증코드를 찾습니다.
         var validCodes = _database.VerificationCodes.Where(code =>
             code.Phone == parsedPhone && code.VerifiesAt < DateTimeOffset.UtcNow &&
             code.ExpiresAt > DateTimeOffset.UtcNow).ToList();
         if (validCodes.Count == 0) return new StatusResponse(StatusType.Forbidden);
         
+        // 모든 활성 인증코드를 만료시킵니다.
         validCodes.ForEach(code => code.ExpiresAt = DateTimeOffset.UtcNow);
 
+        // 계정과 엑세스토큰을 생성하고 반환합니다.
         var account = model.ToAccount(parsedPhone);
         var accessToken = new AccessToken(account);
         
         account.AccessTokens.Add(accessToken);
+        account.Credentials.Add(new Credential(account, model.Password));
         _database.Accounts.Add(account);
         await _database.SaveChangesAsync();
 
+        // 엑세스토큰을 반환합니다.
         return new StatusResponse(StatusType.Success, new AccessTokenResponse(accessToken));
     }
 
@@ -119,6 +132,7 @@ public class AuthService : IAuthService
     {
         Account? account;
         
+        // 아이디가 가입된 계정의 이메일이나 전화번호인지 확인합니다.
         if (new EmailAddressAttribute().IsValid(model.Id))
         {
             account = await _database.Accounts.SingleOrDefaultAsync(a => a.Email == model.Id);
@@ -131,11 +145,14 @@ public class AuthService : IAuthService
 
         if (account is null) return new StatusResponse(StatusType.Unauthorized);
 
+        // 계정의 자격을 확인합니다.
         var credential = account.Credentials.SingleOrDefault(a => a.Provider == Providers.Self);
         if (credential is null) return new StatusResponse(StatusType.Unauthorized);
         
+        // 비밀번호를 확인합니다.
         if (!credential.VerifyPassword(model.Password)) return new StatusResponse(StatusType.Forbidden);
 
+        // 엑세스 토큰을 생성하고 반환합니다.
         var accessToken = new AccessToken(account);
         _database.AccessTokens.Add(accessToken);
         await _database.SaveChangesAsync();

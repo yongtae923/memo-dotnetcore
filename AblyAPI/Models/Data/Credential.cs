@@ -20,6 +20,16 @@ public class Credential
     {
         return BCrypt.Net.BCrypt.Verify(password, _passwordKey);
     }
+
+    public Credential() { }
+
+    public Credential(Account account, string password)
+    {
+        Provider = Providers.Self;
+        LastUpdatedAt = DateTimeOffset.UtcNow;
+        AccountId = account.Id;
+        Password = password;
+    }
 }
 
 public enum Providers

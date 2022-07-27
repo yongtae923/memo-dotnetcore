@@ -17,7 +17,7 @@ public class UserController : Controller
     }
     
     /// <summary>
-    /// 올바른 회원가입 입력모델을 받아서 회원가입합니다. 실행을 위해서 우측에 접근토큰을 입력해주세요.
+    /// 사용자 정보를 조회합니다. 실행을 위해서 우측에 엑세스토큰을 입력해주세요.
     /// </summary>
     /// <param name="accountId"></param>
     /// <remarks>
@@ -47,7 +47,7 @@ public class UserController : Controller
     }
 
     /// <summary>
-    /// 현재 계정의 비밀번호를 변경합니다. 실행을 위해서 우측에 접근토큰을 입력해주세요.
+    /// 현재 계정의 비밀번호를 변경합니다. 실행을 위해서 우측에 엑세스토큰을 입력해주세요.
     /// </summary>
     /// <param name="accountId"></param>
     /// <param name="newPassword"></param>
